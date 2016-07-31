@@ -1,0 +1,7 @@
+[package]
+authors = ["Amndeep Singh Mann <amndeep.singh.mann@gmail.com>"]
+name = "borderpatrolbot"
+version = "0.1.0"
+
+[dependencies]
+discord = "^0.6.0"
