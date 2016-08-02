@@ -24,6 +24,16 @@ fn main() {
         match connection.recv_event() {
             Ok(Event::MessageCreate(message)) => {
                 println!("{} says: {}", message.author.name, message.content);
+                let mut split: Vec<_> = message.content.split(char::is_whitespace).collect();
+                println!("{:?}", split);
+                match split[0] {
+                    "!test" => {
+                        let _ = discord.send_message(&message.channel_id, "Test on split.", "", false);
+                    }
+                    _ => {
+
+                    }
+                }
                 if message.content == "!test" {
                     let _ = discord.send_message(&message.channel_id,
                                                  "This is a reply to the test.",
