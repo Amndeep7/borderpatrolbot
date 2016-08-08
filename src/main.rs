@@ -21,16 +21,17 @@ fn main() {
     let (mut connection, ready) = discord.connect().expect("connect failed");
     let mut state = State::new(ready);
     println!("Ready.");
-    loop {
+
+    'forever: loop {
         let event = match connection.recv_event() {
             Ok(event) => event,
             Err(discord::Error::Closed(code, body)) => {
                 println!("[Error] Connection closed with status {:?}: {}", code, String::from_utf8_lossy(&body));
-                break
+                break 'forever;
             }
             Err(err) => {
                 println!("[Warning] Receive error: {:?}", err);
-                continue
+                continue 'forever;
             }
         };
         state.update(&event);
@@ -72,7 +73,7 @@ fn main() {
                 }
                 if message.content == "!quit" {
                     println!("Quitting.");
-                    break;
+                    break 'forever;
                 }
             }
             Event::Unknown(name, data) => {
