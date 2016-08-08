@@ -22,6 +22,9 @@ fn main() {
     let mut state = State::new(ready);
     println!("Ready.");
 
+    let stateclone = state.clone();
+    let servers = stateclone.servers();
+
     'forever: loop {
         let event = match connection.recv_event() {
             Ok(event) => event,
