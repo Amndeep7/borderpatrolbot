@@ -70,7 +70,7 @@ fn main() {
             }
             Event::MessageCreate(message) => {
                 println!("{} says: {}", message.author.name, message.content);
-                let mut split: Vec<_> = message.content.split(char::is_whitespace).collect();
+                let split: Vec<_> = message.content.split(char::is_whitespace).collect();
                 println!("{:?}", split);
                 match split[0] {
                     "!test" => {
