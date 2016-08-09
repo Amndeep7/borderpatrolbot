@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::Read;
 
 use discord::{Discord, ChannelRef, State};
-use discord::model::{Event, ChannelType};
+use discord::model::{Event, ChannelType, PossibleServer};
 
 fn read_token_file(name: &str) -> String {
     let mut token = String::new();
@@ -22,14 +22,13 @@ fn main() {
     let mut state = State::new(ready);
     println!("Ready.");
 
-    let stateclone = state.clone();
-    let servers = stateclone.servers();
-
     'forever: loop {
         let event = match connection.recv_event() {
             Ok(event) => event,
             Err(discord::Error::Closed(code, body)) => {
-                println!("[Error] Connection closed with status {:?}: {}", code, String::from_utf8_lossy(&body));
+                println!("[Error] Connection closed with status {:?}: {}",
+                         code,
+                         String::from_utf8_lossy(&body));
                 break 'forever;
             }
             Err(err) => {
@@ -40,13 +39,27 @@ fn main() {
         state.update(&event);
 
         match event {
+            Event::ServerCreate(possible_server) => {
+                match possible_server {
+                    PossibleServer::Online(liveserver) => {
+                        println!("liveserver: {:?}", liveserver);
+                        for channel in liveserver.channels {
+                            println!("Channel: {:?}", channel);
+                        }
+                    }
+                    _ => {
+                        println!("junk");
+                    }
+                }
+            }
             Event::MessageCreate(message) => {
                 println!("{} says: {}", message.author.name, message.content);
                 let mut split: Vec<_> = message.content.split(char::is_whitespace).collect();
                 println!("{:?}", split);
                 match split[0] {
                     "!test" => {
-                        let _ = discord.send_message(&message.channel_id, "Test on split.", "", false);
+                        let _ =
+                            discord.send_message(&message.channel_id, "Test on split.", "", false);
                         println!("{:?} --- {:?}", message.id, message.channel_id);
                     }
                     "!visa" => {
@@ -59,30 +72,36 @@ fn main() {
                                     channel_name = channel_name + &user.name;
                                     channel_name = channel_name.to_lowercase();
                                     println!("{:?} {:?} {:?}", serverid, user, channel_name);
-                                    let channel = discord.create_channel(&serverid, &channel_name, ChannelType::Text).expect("Should have successfully created channel");
-                                    let output = format!("Started visa application process for {} - vouch for them here: {}", &user.name, &channel_name); 
+                                    let channel = discord.create_channel(&serverid,
+                                                        &channel_name,
+                                                        ChannelType::Text)
+                                        .expect("Should have successfully created channel");
+                                    let output = format!("Started visa application process for \
+                                                          {} - vouch for them here: {}",
+                                                         &user.name,
+                                                         &channel_name);
                                     let _ = discord.send_message(&message.channel_id, &output, "", false);
                                 }
-                            },
+                            }
                             Some(ChannelRef::Private(channel)) => {
                                 println!("Why are we here?");
-                            },
-                            None => {println!("Something fucked up");},
+                            }
+                            None => {
+                                println!("Something fucked up");
+                            }
                         }
                     }
-                    _ => {
-
+                    "!quit" => {
+                        println!("Quitting.");
+                        break 'forever;
                     }
-                }
-                if message.content == "!quit" {
-                    println!("Quitting.");
-                    break 'forever;
+                    _ => {}
                 }
             }
             Event::Unknown(name, data) => {
                 println!("[Unknown Event] {}: {:?}", name, data);
             }
-            _ => {},
+            _ => {}
         }
     }
     connection.shutdown().expect("connect close failed");
