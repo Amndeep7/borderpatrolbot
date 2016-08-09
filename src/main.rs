@@ -3,8 +3,10 @@ extern crate discord;
 use std::fs::File;
 use std::io::Read;
 
-use discord::{Discord, ChannelRef, State};
-use discord::model::{Event, ChannelType, PossibleServer};
+use discord::{Discord, ChannelRef, State, Result, Error};
+use discord::model::{Event, ChannelType, PossibleServer, LiveServer, Channel, PublicChannel};
+
+static MY_CHANNEL_NAME: &'static str = "borderpatrolbot";
 
 fn read_token_file(name: &str) -> String {
     let mut token = String::new();
@@ -12,6 +14,16 @@ fn read_token_file(name: &str) -> String {
     f.read_to_string(&mut token).expect("Unable to read the token file");
     token = token.trim().to_string();
     token
+}
+
+fn identify_or_create_my_channel(discord: &Discord, server: LiveServer) -> Result<Channel> {
+    for channel in server.channels.into_iter() {
+        if &channel.name == MY_CHANNEL_NAME && &channel.kind == ChannelType::Text {
+            return Ok(Channel::Public(channel));
+        }
+    }
+
+    discord.create_channel(&server.id, MY_CHANNEL_NAME, ChannelType::Text)
 }
 
 fn main() {
@@ -42,13 +54,17 @@ fn main() {
             Event::ServerCreate(possible_server) => {
                 match possible_server {
                     PossibleServer::Online(liveserver) => {
-                        println!("liveserver: {:?}", liveserver);
-                        for channel in liveserver.channels {
-                            println!("Channel: {:?}", channel);
+                        println!("{:#?}", liveserver);
+                        let channel = identify_or_create_my_channel(&discord, liveserver)
+                            .expect("My channel wasn't created");
+                        match channel {
+                            Ok(Channel::Public(channel)) => my_channels.push(channel),
+                            _ => continue 'forever,
                         }
+                        println!("{:#?}", my_channels);
                     }
                     _ => {
-                        println!("junk");
+                        println!("Not a live server");
                     }
                 }
             }
