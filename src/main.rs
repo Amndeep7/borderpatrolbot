@@ -1,12 +1,26 @@
 extern crate discord;
 
+use std::collections::HashSet;
 use std::fs::File;
+use std::hash::{Hash, Hasher};
 use std::io::Read;
 
 use discord::{Discord, ChannelRef, State, Result, Error};
 use discord::model::{Event, ChannelType, PossibleServer, LiveServer, Channel, PublicChannel};
 
 static MY_CHANNEL_NAME: &'static str = "borderpatrolbot";
+
+impl Eq for PublicChannel {
+    fn eq(&self, other: &PublicChannel) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Hash for PublicChannel {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
 
 fn read_token_file(name: &str) -> String {
     let mut token = String::new();
@@ -33,6 +47,8 @@ fn main() {
     let (mut connection, ready) = discord.connect().expect("connect failed");
     let mut state = State::new(ready);
     println!("Ready.");
+
+    let mut my_channels = HashSet::new();
 
     'forever: loop {
         let event = match connection.recv_event() {
