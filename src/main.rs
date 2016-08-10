@@ -21,7 +21,7 @@ fn read_token_file(name: &str) -> String {
 
 fn identify_or_create_my_channel(discord: &Discord, server: LiveServer) -> Result<Channel> {
     for channel in server.channels.into_iter() {
-        if &channel.name == MY_CHANNEL_NAME && &channel.kind == ChannelType::Text {
+        if &channel.name == MY_CHANNEL_NAME && channel.kind == ChannelType::Text {
             return Ok(Channel::Public(channel));
         }
     }
