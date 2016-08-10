@@ -1,26 +1,15 @@
+#![feature(type_ascription)]
+
 extern crate discord;
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::fs::File;
-use std::hash::{Hash, Hasher};
 use std::io::Read;
 
-use discord::{Discord, ChannelRef, State, Result, Error};
-use discord::model::{Event, ChannelType, PossibleServer, LiveServer, Channel, PublicChannel};
+use discord::{Discord, ChannelRef, State, Result};
+use discord::model::{Event, ChannelType, PossibleServer, LiveServer, Channel};
 
 static MY_CHANNEL_NAME: &'static str = "borderpatrolbot";
-
-impl Eq for PublicChannel {
-    fn eq(&self, other: &PublicChannel) -> bool {
-        self.id == other.id
-    }
-}
-
-impl Hash for PublicChannel {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
-}
 
 fn read_token_file(name: &str) -> String {
     let mut token = String::new();
@@ -48,7 +37,7 @@ fn main() {
     let mut state = State::new(ready);
     println!("Ready.");
 
-    let mut my_channels = HashSet::new();
+    let mut my_channels = HashMap::new();
 
     'forever: loop {
         let event = match connection.recv_event() {
@@ -71,12 +60,10 @@ fn main() {
                 match possible_server {
                     PossibleServer::Online(liveserver) => {
                         println!("{:#?}", liveserver);
-                        let channel = identify_or_create_my_channel(&discord, liveserver)
-                            .expect("My channel wasn't created");
-                        match channel {
-                            Ok(Channel::Public(channel)) => my_channels.push(channel),
+                        let _ = match identify_or_create_my_channel(&discord, liveserver) {
+                            Ok(Channel::Public(c)) => my_channels.insert(c.id, c),
                             _ => continue 'forever,
-                        }
+                        };
                         println!("{:#?}", my_channels);
                     }
                     _ => {
