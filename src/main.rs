@@ -89,6 +89,9 @@ fn main() {
                 println!("{} says: {}", message.author.name, message.content);
                 let split: Vec<_> = message.content.split(char::is_whitespace).collect();
                 println!("{:?}", split);
+                let user_mentions = &message.mentions;
+                let role_mentions = &message.mention_roles;
+                println!("Mentions {:?} {:?}", user_mentions, role_mentions);
                 match split[0] {
                     "!test" => {
                         let _ =
