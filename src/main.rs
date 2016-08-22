@@ -12,6 +12,8 @@ use std::io::Read;
 use discord::{Discord, ChannelRef, State, Result};
 use discord::model::{Event, ChannelType, PossibleServer, LiveServer, Channel, RoleId};
 
+use serde_yaml::value::{Value, to_value};
+
 static MY_CHANNEL_NAME: &'static str = "borderpatrolbot";
 
 fn read_token_file(name: &str) -> String {
@@ -36,10 +38,20 @@ fn main() {
     let mut configuration = String::new();
     let mut f = File::open("yaml_example").expect("Unable to open yaml file");
     f.read_to_string(&mut configuration).expect("Unable to read yaml file");
-    let config: BTreeMap<String, String> = serde_yaml::from_str(&configuration).unwrap();
+    println!("1");
+    let raw_config: BTreeMap<String, String> = serde_yaml::from_str(&configuration).unwrap();
+    println!("2");
+    let mut config: BTreeMap<String, Value> = BTreeMap::new();
+    println!("3");
+    for (key, value) in raw_config.into_iter() {
+        config.insert(key, to_value(&value));
+    }
+    println!("4");
+    //let config: BTreeMap<String, Value> = config.into_iter().map(|(k, v)| (k, to_value(v))).collect();
     println!("config: {:?}", config);
+    let extracted = config.get("visaholder").unwrap().as_str().unwrap().to_string();
     let convert = |role: &String| role[3..role.len()-1].parse::<u64>().unwrap();
-    let converted = convert(config.get("visaholder").unwrap());
+    let converted = convert(&extracted);
     println!("converted: {:?}", converted);
 
     panic!("Hello");
