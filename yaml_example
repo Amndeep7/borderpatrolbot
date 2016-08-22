@@ -1,0 +1,9 @@
+# This is a config file for BorderPatrolBot written in YAML
+---
+# The version of the config file type - should be 1.
+version: 1
+# What is the role equivalent to "@visaholder"?  Use a mention please.
+# Ex:
+#   visaholder: @visaholder
+visaholder: <@&200766388539752449>
+...

@@ -1,13 +1,16 @@
 #![feature(type_ascription)]
 
 extern crate discord;
+extern crate serde;
+extern crate serde_yaml;
 
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
 use discord::{Discord, ChannelRef, State, Result};
-use discord::model::{Event, ChannelType, PossibleServer, LiveServer, Channel};
+use discord::model::{Event, ChannelType, PossibleServer, LiveServer, Channel, RoleId};
 
 static MY_CHANNEL_NAME: &'static str = "borderpatrolbot";
 
@@ -30,6 +33,17 @@ fn identify_or_create_my_channel(discord: &Discord, server: LiveServer) -> Resul
 }
 
 fn main() {
+    let mut configuration = String::new();
+    let mut f = File::open("yaml_example").expect("Unable to open yaml file");
+    f.read_to_string(&mut configuration).expect("Unable to read yaml file");
+    let config: BTreeMap<String, String> = serde_yaml::from_str(&configuration).unwrap();
+    println!("config: {:?}", config);
+    let convert = |role: &String| role[3..role.len()-1].parse::<u64>().unwrap();
+    let converted = convert(config.get("visaholder").unwrap());
+    println!("converted: {:?}", converted);
+
+    panic!("Hello");
+
     let token = read_token_file("token");
     println!("{}", token);
     let discord = Discord::from_bot_token(&token).expect("login failed");
