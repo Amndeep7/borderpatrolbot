@@ -2,8 +2,8 @@
 ---
 # The version of the config file type - should be 1.
 version: 1
-# What is the role equivalent to "@visaholder"?  Use a mention please.
+# What is the role equivalent to "@visaholders"?  Use a mention please.
 # Ex:
-#   visaholder: @visaholder
-visaholder: <@&200766388539752449>
+#   visaholders: @visaholders
+visaholders: <@&200766388539752449>
 ...
