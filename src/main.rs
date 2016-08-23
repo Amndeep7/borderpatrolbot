@@ -1,18 +1,17 @@
-#![feature(type_ascription)]
+#![feature(custom_derive, plugin, type_ascription)]
+#![plugin(serde_macros)]
 
 extern crate discord;
 extern crate serde;
 extern crate serde_yaml;
 
-use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
 use discord::{Discord, ChannelRef, State, Result};
-use discord::model::{Event, ChannelType, PossibleServer, LiveServer, Channel, RoleId};
-
-use serde_yaml::value::{Value, to_value};
+use discord::model::{Event, ChannelType, PossibleServer, LiveServer, Channel, RoleId,
+                     PublicChannel};
 
 static MY_CHANNEL_NAME: &'static str = "borderpatrolbot";
 
@@ -34,30 +33,59 @@ fn identify_or_create_my_channel(discord: &Discord, server: LiveServer) -> Resul
     discord.create_channel(&server.id, MY_CHANNEL_NAME, ChannelType::Text)
 }
 
-fn main() {
-    let mut configuration = String::new();
-    let mut f = File::open("yaml_example").expect("Unable to open yaml file");
-    f.read_to_string(&mut configuration).expect("Unable to read yaml file");
-    println!("1");
-    let raw_config: BTreeMap<String, String> = serde_yaml::from_str(&configuration).unwrap();
-    println!("2");
-    let mut config: BTreeMap<String, Value> = BTreeMap::new();
-    println!("3");
-    for (key, value) in raw_config.into_iter() {
-        config.insert(key, to_value(&value));
+#[derive(Debug, Deserialize)]
+struct RawConfig {
+    version: u32,
+    visaholders: String,
+}
+
+#[derive(Debug)]
+struct Config {
+    version: u32,
+    visaholders: RoleId,
+}
+
+fn convert(raw: Option<RawConfig>,
+           roles: Vec<RoleId>)
+           -> std::result::Result<Config, &'static str> {
+    if raw.is_none() {
+        return Err("Couldn't parse rawconfig");
     }
-    println!("4");
-    //let config: BTreeMap<String, Value> = config.into_iter().map(|(k, v)| (k, to_value(v))).collect();
-    println!("config: {:?}", config);
-    let extracted = config.get("visaholder").unwrap().as_str().unwrap().to_string();
-    let convert = |role: &String| role[3..role.len()-1].parse::<u64>().unwrap();
-    let converted = convert(&extracted);
-    println!("converted: {:?}", converted);
 
-    panic!("Hello");
+    let raw = raw.unwrap();
 
+    let mut vh = None;
+
+    // swap out with regex
+    let convert = |role: &String| role[3..role.len() - 1].parse::<u64>().unwrap();
+
+    for roleid in roles {
+        let RoleId(id) = roleid;
+        if id == convert(&raw.visaholders) {
+            vh = Some(roleid);
+        }
+    }
+
+    match vh {
+        Some(roleid) => {
+            Ok(Config {
+                version: raw.version,
+                visaholders: roleid,
+            })
+        }
+        None => Err("Couldn't match roleids"),
+    }
+}
+
+// come up with a better name lol
+#[derive(Debug)]
+struct Stuff {
+    channel: PublicChannel,
+    config: Option<Config>,
+}
+
+fn main() {
     let token = read_token_file("token");
-    println!("{}", token);
     let discord = Discord::from_bot_token(&token).expect("login failed");
     let (mut connection, ready) = discord.connect().expect("connect failed");
     let mut state = State::new(ready);
@@ -85,12 +113,40 @@ fn main() {
             Event::ServerCreate(possible_server) => {
                 match possible_server {
                     PossibleServer::Online(liveserver) => {
-                        println!("{:#?}", liveserver);
+                        // println!("{:#?}", liveserver);
                         let _ = match identify_or_create_my_channel(&discord, liveserver) {
-                            Ok(Channel::Public(c)) => my_channels.insert(c.id, c),
+                            Ok(Channel::Public(c)) => {
+                                // shove everything in the match instead of doing an unwrap
+                                // don't return anything:
+                                //   some -> my_channels.insert
+                                //   inner none -> print message stating that config needs to be
+                                //   pinned and insert but with config: None
+                                //   outer none -> something fucked up, don't insert
+                                let config_msg = match discord.get_pinned_messages(c.id) {
+                                    Ok(messages) => {
+                                        println!("Size of messages: {}", messages.len());
+                                        if messages.len() >= 1 {
+                                            Some(messages[0].clone())
+                                        } else {
+                                            None
+                                        }
+                                    }
+                                    _ => None,
+                                };
+                                let config_msg = config_msg.unwrap();
+                                let raw_config: Option<RawConfig> =
+                                    serde_yaml::from_str(config_msg.content.as_str()).ok();
+                                println!("{:?}", raw_config);
+                                let config = convert(raw_config, config_msg.mention_roles);
+                                my_channels.insert(c.id,
+                                                   Stuff {
+                                                       channel: c,
+                                                       config: config.ok(),
+                                                   });
+                            }
                             _ => continue 'forever,
                         };
-                        println!("{:#?}", my_channels);
+                        println!("my channels: {:#?}", my_channels);
                     }
                     _ => {
                         println!("Not a live server");
