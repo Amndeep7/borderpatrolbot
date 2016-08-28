@@ -2,6 +2,7 @@
 #![plugin(serde_macros)]
 
 extern crate discord;
+extern crate regex;
 extern crate serde;
 extern crate serde_yaml;
 
@@ -12,6 +13,8 @@ use std::io::Read;
 use discord::{Discord, ChannelRef, State, Result};
 use discord::model::{Event, ChannelType, PossibleServer, LiveServer, Channel, RoleId,
                      PublicChannel};
+
+use regex::Regex;
 
 static MY_CHANNEL_NAME: &'static str = "borderpatrolbot";
 
@@ -56,8 +59,12 @@ fn convert(raw: Option<RawConfig>,
 
     let mut vh = None;
 
-    // swap out with regex
-    let convert = |role: &String| role[3..role.len() - 1].parse::<u64>().unwrap();
+    let convert = |role: &String| {
+        let re = Regex::new(r"<@&(\d*)>").unwrap();
+        // should only have one capture
+        let id: u64 = re.captures_iter(role).next().unwrap().at(1).unwrap().parse::<u64>().unwrap();
+        id
+    };
 
     for roleid in roles {
         let RoleId(id) = roleid;

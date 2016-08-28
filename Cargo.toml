@@ -5,6 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 discord = "^0.6.0"
+regex = "0.1.73"
 serde = "0.8.3"
 serde_macros = "0.8.4"
 serde_yaml = "0.4.0"
