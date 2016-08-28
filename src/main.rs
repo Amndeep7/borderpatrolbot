@@ -113,36 +113,39 @@ fn main() {
             Event::ServerCreate(possible_server) => {
                 match possible_server {
                     PossibleServer::Online(liveserver) => {
-                        // println!("{:#?}", liveserver);
                         let _ = match identify_or_create_my_channel(&discord, liveserver) {
                             Ok(Channel::Public(c)) => {
-                                // shove everything in the match instead of doing an unwrap
-                                // don't return anything:
-                                //   some -> my_channels.insert
-                                //   inner none -> print message stating that config needs to be
-                                //   pinned and insert but with config: None
-                                //   outer none -> something fucked up, don't insert
-                                let config_msg = match discord.get_pinned_messages(c.id) {
+                                match discord.get_pinned_messages(c.id) {
                                     Ok(messages) => {
                                         println!("Size of messages: {}", messages.len());
                                         if messages.len() >= 1 {
-                                            Some(messages[0].clone())
+                                            let config_msg = messages[0];
+                                            let raw_config: Option<RawConfig> =
+                                                serde_yaml::from_str(messages[0].content.as_str())
+                                                    .ok();
+                                            let config = convert(raw_config,
+                                                                 messages[0].mention_roles);
+                                            my_channels.insert(c.id,
+                                                               Stuff {
+                                                                   channel: c,
+                                                                   config: config.ok(),
+                                                               });
                                         } else {
-                                            None
+                                            println!("Config message needs to be the first \
+                                                      pinned message");
+                                            // todo: make a message on the channel
+                                            my_channels.insert(c.id,
+                                                               Stuff {
+                                                                   channel: c,
+                                                                   config: None,
+                                                               });
                                         }
                                     }
-                                    _ => None,
+                                    _ => {
+                                        println!("Something fucked up while getting messages");
+                                        // todo: make a message on the channel
+                                    }
                                 };
-                                let config_msg = config_msg.unwrap();
-                                let raw_config: Option<RawConfig> =
-                                    serde_yaml::from_str(config_msg.content.as_str()).ok();
-                                println!("{:?}", raw_config);
-                                let config = convert(raw_config, config_msg.mention_roles);
-                                my_channels.insert(c.id,
-                                                   Stuff {
-                                                       channel: c,
-                                                       config: config.ok(),
-                                                   });
                             }
                             _ => continue 'forever,
                         };
