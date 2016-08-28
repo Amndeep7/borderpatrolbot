@@ -84,9 +84,8 @@ fn convert(raw: Option<RawConfig>,
     }
 }
 
-// come up with a better name lol
 #[derive(Debug)]
-struct Stuff {
+struct ChannelInfo {
     channel: PublicChannel,
     config: Option<Config>,
 }
@@ -133,7 +132,7 @@ fn main() {
                                             let config = convert(raw_config,
                                                                  config_msg.mention_roles);
                                             my_channels.insert(c.id,
-                                                               Stuff {
+                                                               ChannelInfo {
                                                                    channel: c,
                                                                    config: config.ok(),
                                                                });
@@ -142,7 +141,7 @@ fn main() {
                                                       pinned message");
                                             // todo: make a message on the channel
                                             my_channels.insert(c.id,
-                                                               Stuff {
+                                                               ChannelInfo {
                                                                    channel: c,
                                                                    config: None,
                                                                });
