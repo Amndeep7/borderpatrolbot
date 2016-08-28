@@ -119,12 +119,12 @@ fn main() {
                                     Ok(messages) => {
                                         println!("Size of messages: {}", messages.len());
                                         if messages.len() >= 1 {
-                                            let config_msg = messages[0];
+                                            let config_msg = messages[0].clone();
                                             let raw_config: Option<RawConfig> =
-                                                serde_yaml::from_str(messages[0].content.as_str())
+                                                serde_yaml::from_str(config_msg.content.as_str())
                                                     .ok();
                                             let config = convert(raw_config,
-                                                                 messages[0].mention_roles);
+                                                                 config_msg.mention_roles);
                                             my_channels.insert(c.id,
                                                                Stuff {
                                                                    channel: c,
