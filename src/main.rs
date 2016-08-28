@@ -36,6 +36,7 @@ fn identify_or_create_my_channel(discord: &Discord, server: LiveServer) -> Resul
     discord.create_channel(&server.id, MY_CHANNEL_NAME, ChannelType::Text)
 }
 
+//TODO: come up with custom deserialize function so I can get rid of this struct
 #[derive(Debug, Deserialize)]
 struct RawConfig {
     version: u32,
@@ -48,6 +49,7 @@ struct Config {
     visaholders: RoleId,
 }
 
+//TODO: convert error type to custom error instead of just a string
 fn convert(raw: Option<RawConfig>,
            roles: Vec<RoleId>)
            -> std::result::Result<Config, &'static str> {
@@ -55,16 +57,16 @@ fn convert(raw: Option<RawConfig>,
         return Err("Couldn't parse rawconfig");
     }
 
-    let raw = raw.unwrap();
-
-    let mut vh = None;
-
     let convert = |role: &String| {
         let re = Regex::new(r"<@&(\d*)>").unwrap();
         // should only have one capture
         let id: u64 = re.captures_iter(role).next().unwrap().at(1).unwrap().parse::<u64>().unwrap();
         id
     };
+
+    let raw = raw.unwrap();
+
+    let mut vh = None;
 
     for roleid in roles {
         let RoleId(id) = roleid;
@@ -119,6 +121,7 @@ fn main() {
             Event::ServerCreate(possible_server) => {
                 match possible_server {
                     PossibleServer::Online(liveserver) => {
+                        //TODO: put this in seperate function so as to reuse it for !config msg
                         let _ = match identify_or_create_my_channel(&discord, liveserver) {
                             Ok(Channel::Public(c)) => {
                                 match discord.get_pinned_messages(c.id) {
